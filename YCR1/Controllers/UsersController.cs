@@ -1,43 +1,92 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Data.SqlClient;
+using YCR1.Model;
 
 namespace YCR1.Controllers
 {
     [ApiController]
     public class UsersController : Controller
     {
-        [HttpGet]
-        [Route("Get")]
-        public ActionResult Get(string id)
+        private readonly UserFactorycs _userFactorycs;
+        public UsersController(UserFactorycs userFactorycs)
         {
-            using (var connection = new SqlConnection()) 
+            _userFactorycs = userFactorycs;
+        }
+
+        [HttpGet]
+        [Route("Get{id}")]
+        public ActionResult<User> Get(string id)
+        {
+            using (var connection = new SqlConnection(_userFactorycs._connectionString))
             {
-                
-            
+                connection.Open();
+                var result = _userFactorycs.UserGet(connection, id);
+                connection.Close();
+                if (result == null)
+                {
+                    return NotFound();
+                }
+                return Ok(result);
             }
-            return View();
         }
 
         [HttpPost]
         [Route("Create")]
-        public ActionResult Create(string id, string name, int age)
+        public ActionResult Create([FromBody] User user)
         {
-            return View();
+            if (string.IsNullOrEmpty(user.id)) 
+            {
+                return Ok("必須填入ID");
+            }
+            using (var connection = new SqlConnection(_userFactorycs._connectionString))
+            {
+                connection.Open();
+                var result = _userFactorycs.UserAdd(connection, user);
+                connection.Close();
+                if (result > 0)
+                {
+                    return Ok("新增成功");
+                }
+                return NotFound();
+            }
         }
         [HttpPost]
         [Route("Edit")]
-        public ActionResult Edit(int id, string? name, int? age)
+        public ActionResult Edit([FromBody]User user)
         {
-
-            return View();
+            if (string.IsNullOrEmpty(user.id))
+            {
+                return Ok("必須填入ID");
+            }
+            using (var connection = new SqlConnection(_userFactorycs._connectionString))
+            {
+                connection.Open();
+                var result = _userFactorycs.UserEdit(connection, user);
+                connection.Close();
+                if (result > 0) 
+                {
+                    return Ok("修改成功");
+                }
+                return NotFound();
+            }
 
         }
         [HttpPost]
-        [Route("Delete")]
-        public ActionResult Delete(int id)
+        [Route("Delete{id}")]
+        public ActionResult Delete(string id)
         {
-            return View();
+            using (var connection = new SqlConnection(_userFactorycs._connectionString))
+            {
+                connection.Open();
+                var result = _userFactorycs.UserDelete(connection, id);
+                connection.Close();
+                if (result > 0)
+                {
+                    return Ok("刪除成功");
+                }
+                return NotFound();
+            }
         }
 
     }
